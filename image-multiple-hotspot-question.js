@@ -232,8 +232,6 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
     hotspot.computedSettings.scaleX = hotspot.computedSettings.scaleX || 1;
     hotspot.computedSettings.scaleY = hotspot.computedSettings.scaleY || 1;
 
-    console.log(hotspot.computedSettings);
-
     const $hotspotWrapper = $('<div>', {
       'class': 'image-hotspot-wrapper'
     }).css({
@@ -246,7 +244,6 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
     var $hotspot = $('<div>', {
       'class': 'image-hotspot ' + hotspot.computedSettings.figure
     }).css({
-      background: 'rgba(255, 0, 0, 0.3)',
       transform: 'rotate(' + hotspot.computedSettings.angle + 'deg) scale(' + hotspot.computedSettings.scaleX + ', ' + hotspot.computedSettings.scaleY + ')'
     }).click(function (mouseEvent) {
       if (self.selectedHotspots.indexOf(index) == -1) {
