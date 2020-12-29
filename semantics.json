@@ -122,6 +122,26 @@
                       "optional": true
                     },
                     {
+                      "name": "angle",
+                      "type": "number",
+                      "default": 0,
+                      "min": 0,
+                      "max": 359,
+                      "optional": true
+                    },
+                    {
+                      "name": "scaleX",
+                      "type": "number",
+                      "default": 1,
+                      "optional": true
+                    },
+                    {
+                      "name": "scaleY",
+                      "type": "number",
+                      "default": 1,
+                      "optional": true
+                    },
+                    {
                       "name": "figure",
                       "type": "text",
                       "optional": true

@@ -227,25 +227,39 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
    */
   ImageMultipleHotspotQuestion.prototype.attachHotspot = function (hotspot, index) {
     var self = this;
-    var $hotspot = $('<div>', {
-      'class': 'image-hotspot ' + hotspot.computedSettings.figure
+
+    hotspot.computedSettings.angle = hotspot.computedSettings.angle || 0;
+    hotspot.computedSettings.scaleX = hotspot.computedSettings.scaleX || 1;
+    hotspot.computedSettings.scaleY = hotspot.computedSettings.scaleY || 1;
+
+    console.log(hotspot.computedSettings);
+
+    const $hotspotWrapper = $('<div>', {
+      'class': 'image-hotspot-wrapper'
     }).css({
       left: hotspot.computedSettings.x + '%',
       top: hotspot.computedSettings.y + '%',
       width: hotspot.computedSettings.width + '%',
       height: hotspot.computedSettings.height + '%'
+    }).appendTo(this.$imageWrapper);
+
+    var $hotspot = $('<div>', {
+      'class': 'image-hotspot ' + hotspot.computedSettings.figure
+    }).css({
+      background: 'rgba(255, 0, 0, 0.3)',
+      transform: 'rotate(' + hotspot.computedSettings.angle + 'deg) scale(' + hotspot.computedSettings.scaleX + ', ' + hotspot.computedSettings.scaleY + ')'
     }).click(function (mouseEvent) {
       if (self.selectedHotspots.indexOf(index) == -1) {
         self.selectedHotspots.push(index); // add chosen hotspot to selectedHotspots list
       }
-     
+
       // Create new hotspot feedback
       self.createHotspotFeedback($(this), mouseEvent, hotspot);
 
       // Do not propagate
       return false;
 
-    }).appendTo(this.$imageWrapper);
+    }).appendTo($hotspotWrapper);
 
     if (hotspot.userSettings.correct) {
       this.$hotspots.push($hotspot);
@@ -281,24 +295,9 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
 
     this.hotspotFeedback.hotspotChosen = true;
 
-    var feedbackPosX;
-    var feedbackPosY;
-
-    if($(mouseEvent.target).hasClass('hotspot-feedback')) {
-      feedbackPosX = mouseEvent.pageX - $(mouseEvent.currentTarget).offset().left;
-      feedbackPosY = mouseEvent.pageY - $(mouseEvent.currentTarget).offset().top;
-    }
-    else {
-      // Center hotspot feedback on mouse click with fallback for firefox
-      feedbackPosX = (mouseEvent.offsetX || mouseEvent.pageX - $(mouseEvent.target).offset().left);
-      feedbackPosY = (mouseEvent.offsetY || mouseEvent.pageY - $(mouseEvent.target).offset().top);
-    }
-
-    // Apply clicked element offset if click was not in wrapper
-    if (!$clickedElement.hasClass('image-wrapper')) {
-      feedbackPosX += $clickedElement.position().left;
-      feedbackPosY += $clickedElement.position().top;
-    }
+    const backgroundClientRect = this.$imageWrapper.get(0).getBoundingClientRect();
+    const feedbackPosX = mouseEvent.clientX - backgroundClientRect.left;
+    const feedbackPosY = mouseEvent.clientY - backgroundClientRect.top;
 
     // Keep position and pixel offsets for resizing
     this.hotspotFeedback.percentagePosX = feedbackPosX / (this.$imageWrapper.width() / 100);
@@ -321,7 +320,7 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
         }
       }
       this.hotspotFeedback.incorrect = false;
-    } 
+    }
     else if (hotspot && hotspot.userSettings.selected) {
       this.hotspotFeedback.$element.addClass('already-selected');
       feedbackText = this.params.imageMultipleHotspotQuestion.hotspotSettings.alreadySelectedFeedback;
@@ -364,9 +363,9 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
    * Return the clicked hotspots
    * @return {array} An array containin the indexes of the clicked hotspots
    */
-  ImageMultipleHotspotQuestion.prototype.getCurrentState = function () { 
+  ImageMultipleHotspotQuestion.prototype.getCurrentState = function () {
     return this.selectedHotspots;
-  } 
+  }
 
   /**
    * Checks if an answer for this question has been given.
@@ -437,7 +436,7 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
     // Clear feedback
     this.setFeedback();
   };
-  
+
   /**
    * Resize image and wrapper
    */
