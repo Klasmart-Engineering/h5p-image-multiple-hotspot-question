@@ -27,6 +27,11 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
       behaviour: {
         enableRetry: true,
         enableSolutionsButton: false
+      },
+      l10n: {
+        play: 'Play',
+        pause: 'Pause',
+        audioNotSupported: 'Your browser does not support this audio'
       }
     };
 
@@ -72,6 +77,9 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
      * Keeps track of parameters
      */
     this.params = $.extend(true, {}, defaults, params);
+
+    // Store audios
+    this.audios = new Array(this.params.imageMultipleHotspotQuestion.hotspotSettings.hotspot.length);
 
     /**
      * Easier access to image settings.
@@ -138,7 +146,10 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
   ImageMultipleHotspotQuestion.prototype.registerDomElements = function () {
     // Register task introduction text
     if (this.hotspotSettings.taskDescription) {
-      this.setIntroduction(this.hotspotSettings.taskDescription);
+      this.setIntroduction(this.createIntroduction({
+        hotspotSettings: this.hotspotSettings,
+        l10n: this.params.l10n
+      }));
     }
 
     // Register task content area
@@ -146,6 +157,35 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
 
     // Register retry button
     this.createRetryButton();
+  };
+
+  ImageMultipleHotspotQuestion.prototype.createIntroduction = function (params) {
+    const $introductionWrapper = $('<div class="h5p-image-hotspot-question-intro-wrapper">');
+
+    const hasAudio = (params.hotspotSettings.taskDescriptionAudio && params.hotspotSettings.taskDescriptionAudio.length > 0);
+
+    if (hasAudio) {
+      const $audioButtonContainer = $('<div/>', {
+        'class': 'h5p-image-hotspot-question-audio-wrapper'
+      });
+
+      const audioInstance = new H5P.Audio(
+        {
+          files: params.hotspotSettings.taskDescriptionAudio,
+          audioNotSupported: params.l10n.audioNotSupported
+        },
+        this.contentId
+      );
+      audioInstance.attach($audioButtonContainer);
+      $audioButtonContainer.appendTo($introductionWrapper);
+    }
+
+    const $taskDescription = $('<div class="h5p-image-hotspot-question-intro">' + params.hotspotSettings.taskDescription + '</div>').appendTo($introductionWrapper);
+    if (hasAudio) {
+      $taskDescription.addClass('hasAudio');
+    }
+
+    return $introductionWrapper;
   };
 
   /**
@@ -224,6 +264,7 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
         });
       }
       else {
+        self.stopAudios();
         // Create new hotspot feedback
         self.createHotspotFeedback($(this), mouseEvent);
       }
@@ -245,6 +286,8 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
    * @param {Object} hotspot Hotspot parameters
    */
   ImageMultipleHotspotQuestion.prototype.attachHotspot = function (hotspot, index) {
+    this.audios[index] = ImageMultipleHotspotQuestion.createAudio(hotspot.userSettings.audio, this.contentId);
+
     const self = this;
     const $hotspot = $('<div>', {
       'class': 'image-hotspot ' + hotspot.computedSettings.figure
@@ -254,12 +297,22 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
       width: hotspot.computedSettings.width + '%',
       height: hotspot.computedSettings.height + '%'
     }).click(function (mouseEvent) {
-      if (self.selectedHotspots.indexOf(index) === -1) {
-        self.selectedHotspots.push(index); // add chosen hotspot to selectedHotspots list
-      }
-
       if (self.disabled) {
         return false;
+      }
+
+      self.stopAudios();
+
+      if (self.getScore() >= self.getMaxScore()) {
+        return; // done
+      }
+
+      if (self.selectedHotspots.indexOf(index) === -1) {
+        self.playAudio(index);
+        self.selectedHotspots.push(index); // add chosen hotspot to selectedHotspots list
+      }
+      else if (!hotspot.userSettings.correct) {
+        self.playAudio(index); // Wrong audios played again.
       }
 
       // Create new hotspot feedback
@@ -618,6 +671,84 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
    */
   ImageMultipleHotspotQuestion.prototype.getDescription = function () {
     return this.params.imageMultipleHotspotQuestion.hotspotSettings.taskDescription || ImageMultipleHotspotQuestion.DEFAULT_DESCRIPTION;
+  };
+
+  /**
+  * Create audio elements from audio object.
+  * @param {object} audio Audio object.
+  * @param {number} id ContentId.
+  * @return {object[]} Audio elements.
+  */
+  ImageMultipleHotspotQuestion.createAudio = function (audio, id) {
+    if (!audio || audio.length < 1 || !audio[0].path) {
+      return null;
+    }
+
+    const player = document.createElement('audio');
+    player.style.display = 'none';
+    player.src = H5P.getPath(audio[0].path, id);
+
+    return {
+      player: player,
+      promise: null
+    };
+  };
+
+  /**
+  * Start audio.
+  * @param {number} id Index.
+  */
+  ImageMultipleHotspotQuestion.prototype.playAudio = function (id) {
+    if (id < 0 || id >= this.audios.length) {
+      return;
+    }
+
+    const audio = this.audios[id];
+
+    if (!audio) {
+      return;
+    }
+
+    // People might click quickly ...
+    if (!audio.promise) {
+      audio.promise = audio.player.play();
+      audio.promise
+        .then(() => {
+          audio.promise = null;
+        })
+        .catch(() => {
+          // Browser policy prevents playing
+          audio.promise = null;
+        });
+    }
+  };
+
+  /**
+  * Stop audios
+  */
+  ImageMultipleHotspotQuestion.prototype.stopAudios = function () {
+    /*
+    * People may click quickly, and audios that should
+    * be stopped may not have loaded yet.
+    */
+
+    this.audios.forEach(function (audio) {
+      if (!audio) {
+        return;
+      }
+
+      if (audio.promise) {
+        audio.promise.then(() => {
+          audio.player.pause();
+          audio.player.load(); // Reset
+          audio.promise = null;
+        });
+      }
+      else {
+        audio.player.pause();
+        audio.player.load(); // Reset
+      }
+    });
   };
 
   ImageMultipleHotspotQuestion.DEFAULT_DESCRIPTION = 'Image Multiple Hotspot Question';
