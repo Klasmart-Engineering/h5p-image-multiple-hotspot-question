@@ -1,3 +1,7 @@
+.h5p-image-multiple-hotspot-question {
+  font-family: 'Roboto', sans-serif;
+}
+
 /* Transparent background color is a IE10 hack to get click event*/
 .h5p-image-multiple-hotspot-question .image-hotspot-wrapper {
   position: absolute;
