@@ -1,4 +1,3 @@
-/*global H5P*/
 /*
  * This code really needs refactoring!
  */
@@ -149,8 +148,6 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
    * Called from H5P.Question.
    */
   ImageMultipleHotspotQuestion.prototype.registerDomElements = function () {
-    const self = this;
-
     // Register task introduction text
     if (this.hotspotSettings.taskDescription) {
       this.setIntroduction(this.createIntroduction({
@@ -254,7 +251,7 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
 
     const self = this;
 
-    this.previousState.selectedHotspots.forEach(function (hotspot, index) {
+    this.previousState.selectedHotspots.forEach(function (hotspot) {
       self.createHotspotFeedback(
         self.$allHotspots[hotspot.index],
         self.getMouseClickEvent(hotspot.position),
@@ -278,7 +275,7 @@ H5P.ImageMultipleHotspotQuestion = (function ($, Question) {
         );
       }
     }
-  }
+  };
 
   /**
    * Initiate image click listener to capture clicks outside of defined hotspots.
